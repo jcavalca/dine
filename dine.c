@@ -1,32 +1,60 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <pthread.h>
 #include "dawdle.c"
-
-#ifndef NUM_PHILOSOPHERS 
-#define NUM_PHILOSOPHERS 5
-#endif
-
-/* defining possible states for a philosopher*/
-#define THINKING 0
-#define EATING 1
-#define CHANGING 2
+#include "dine.h"
 
 void *philosophing(void *id_ptr){
 	printf("Thread %d says hi\n", *(int *)id_ptr);
 	return NULL;
 }
 
+void getForks(Fork forks[NUM_PHILOSOPHERS]){
+	int i;
+	for (i = 0; i < NUM_PHILOSOPHERS; i++){
+		forks[i].owner = NULL;
+	}
+}
+
+void getPhilsophers(Philosopher phils[NUM_PHILOSOPHERS],
+				   Fork forks[NUM_PHILOSOPHERS], 
+				   pthread_t threads[NUM_PHILOSOPHERS]){
+
+	int i;
+	for (i = 0; i < NUM_PHILOSOPHERS; i++){
+		Philosopher confucious; /*threads are confusing*/
+		confucious.name = 'a' + i;
+		confucious.thread_id = &threads[i];	
+		confucious.state = CHANGING;
+		if (i == 0){
+			confucious.isRightHanded = FALSE;
+		}else{
+			confucious.isRightHanded = TRUE;
+		}
+		confucious.target1 = &forks[i];
+		if (i != NUM_PHILOSOPHERS - 1){
+			confucious.target2 = &forks[FIRST_INDEX];
+		}else{
+			confucious.target2 = &forks[i+1];
+		}
+		confucious.isHungry = TRUE;
+		phils[i] = confucious;
+	}
+}
+
 int main(int argc, char *argv[]){
 
-	int id[NUM_PHILOSOPHERS], i;
+	Philosopher phils[NUM_PHILOSOPHERS];
+	Fork forks[NUM_PHILOSOPHERS];
 	pthread_t threads[NUM_PHILOSOPHERS];
+	int id[NUM_PHILOSOPHERS];
+	int i;
+	
 
 	for (i = 0; i < NUM_PHILOSOPHERS; i++){
 		id[i] = i;
-	}
-	for (i = 0; i < NUM_PHILOSOPHERS; i++){
 		int error_check = pthread_create(
 						&threads[i], 
 						NULL, 
