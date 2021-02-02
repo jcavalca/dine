@@ -13,6 +13,7 @@
 #define TRUE 1
 
 #define FIRST_INDEX 0
+#define DEFAULT_CYCLES 1
 
 typedef struct Philosopher
 {
