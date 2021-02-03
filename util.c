@@ -7,8 +7,7 @@
    in this case we have: 
 	#forks != #philosophers
 */
-#define NUMB_FORKS NUM_PHILOSOPHERS != 1 ? NUM_PHILOSOPHERS : NUM_PHILOSOPHERS + 1
-
+#define NUMB_FORKS NUM_PHILOSOPHERS!=1?NUM_PHILOSOPHERS:NUM_PHILOSOPHERS + 1
 
 Philosopher phils[NUM_PHILOSOPHERS];
 sem_t mutex;	/*for changing states and printing atomically*/
@@ -16,8 +15,7 @@ pthread_t threads[NUM_PHILOSOPHERS];
 int sem_ids[NUM_PHILOSOPHERS];
 int numb_cycles;
 void *retval;
-//int numb_forks = NUM_PHILOSOPHERS != 1 ? NUM_PHILOSOPHERS : NUM_PHILOSOPHERS + 1;
-sem_t forks[NUM_PHILOSOPHERS];
+sem_t forks[NUMB_FORKS];
 
 int read_command_line(int argc, char *argv[]){
 	int i;

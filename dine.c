@@ -38,8 +38,12 @@ void take_forks(Philosopher *p, sem_t *first, sem_t *second){
 	if (-1 == sem_wait(&mutex) ){
 		exit_gracefully("sem_wait");
 	}
-
-	p -> isHoldingRightFork = TRUE;		/*critical region*/
+	/*critical region*/
+	if (p -> isRightHanded){
+		p -> isHoldingRightFork = TRUE;	
+	}else{
+		p -> isHoldingLeftFork = TRUE;	
+	}
 	print_states();
 	if (-1 == sem_post(&mutex) ){
 		exit_gracefully("sem_post");
@@ -52,7 +56,13 @@ void take_forks(Philosopher *p, sem_t *first, sem_t *second){
 	if (-1 == sem_wait(&mutex) ){
 		exit_gracefully("sem_wait");
 	}
-    p -> isHoldingLeftFork = TRUE;		  /*critical region*/
+	/*critical region*/
+	if (p -> isRightHanded){
+		p -> isHoldingLeftFork = TRUE;	
+	}else{
+		p -> isHoldingRightFork = TRUE;	
+	}
+
 	p -> state = EATING;				  /*now ready to eat*/
 	print_states();
 	if (-1 == sem_post(&mutex) ){
@@ -71,38 +81,44 @@ void eat(Philosopher *p){
 		exit_gracefully("sem_wait");
 	}
 }
-
 void put_forks(Philosopher *p, sem_t *first, sem_t *second){
-
-
 	/* letting go first fork*/
-	if (-1 == sem_post(first) ){
-		exit_gracefully("sem_wait");
-	}
-
 	if (-1 == sem_wait(&mutex) ){
 		exit_gracefully("sem_wait");
 	}
+	/*critical region*/
+	if (p -> isRightHanded){
+		p -> isHoldingRightFork = FALSE;	
+	}else{
+		p -> isHoldingLeftFork = FALSE;	
+	}
 
-	p -> isHoldingRightFork = FALSE;		/*critical region*/
 	print_states();
 
+	if (-1 == sem_post(first) ){
+		exit_gracefully("sem_wait");
+	}
 	if (-1 == sem_post(&mutex) ){
 		exit_gracefully("sem_post");
 	}
 
-	// /* getting second fork*/
-	if (-1 == sem_post(second) ){
-		exit_gracefully("sem_wait");
-	}
-
+	/* letting go second fork*/
 	if (-1 == sem_wait(&mutex) ){
 		exit_gracefully("sem_wait");
 	}
+	/*critical region*/
+	if (p -> isRightHanded){
+		p -> isHoldingLeftFork = FALSE;	
+	}else{
+		p -> isHoldingRightFork = FALSE;	
+	}
 
-    p -> isHoldingLeftFork = FALSE;		  /*critical region*/
 	p -> state = THINKING;				  /*now thinking*/
 	print_states();
+
+	if (-1 == sem_post(second) ){
+		exit_gracefully("sem_wait");
+	}
 
 	if (-1 == sem_post(&mutex) ){
 		exit_gracefully("sem_post");
@@ -138,8 +154,8 @@ void *philosophing(void *ptr){
 }
 
 void getForks(){
-	int i;
-	for (i = 0; i < NUM_PHILOSOPHERS; i++){
+	int i, lim = (int) NUMB_FORKS;
+	for (i = 0; i < lim; i++){
 		sem_t fork;		/*All forks start in the table*/
 		if (sem_init(&fork, THREAD_SHARED, INIT_VALUE) == -1){
                exit_gracefully("sem_init");
