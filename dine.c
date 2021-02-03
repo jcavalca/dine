@@ -5,90 +5,195 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <semaphore.h>
+
 #include "dawdle.c"
 #include "dine.h"
+#include "util.c"
+/*
+sem_wait()  decrements  (locks)  the semaphore pointed to by sem
+sem_post()  increments  (unlocks)  the  semaphore  pointed  to  by sem
+*/
 
-int read_command_line(int argc, char *argv[]){
+void think(Philosopher *p){
+	dawdle();
+	if (-1 == sem_wait(&mutex) ){
+		exit_gracefully("sem_wait");
+	}
+	p -> state = CHANGING;				/*changing to eating*/
+	print_states();
+
+	if (-1 == sem_post(&mutex) ){
+		exit_gracefully("sem_wait");
+	}
+}
+
+void take_forks(Philosopher *p, sem_t *first, sem_t *second){
+
+	/* getting first fork*/
+	if (-1 == sem_wait(&mutex) ){
+		exit_gracefully("sem_wait");
+	}
+
+	if (-1 == sem_wait(first) ){
+		exit_gracefully("sem_wait");
+	}
+	p -> isHoldingRightFork = TRUE;		/*critical region*/
+
+	if (-1 == sem_post(&mutex) ){
+		exit_gracefully("sem_post");
+	}
+
+	/* getting second fork*/
+	if (-1 == sem_wait(&mutex) ){
+		exit_gracefully("sem_wait");
+	}
+
+	if (-1 == sem_wait(second) ){
+		exit_gracefully("sem_wait");
+	}
+    p -> isHoldingLeftFork = TRUE;		  /*critical region*/
+	p -> state = EATING;				  /*now ready to eat*/
+	print_states();
+	if (-1 == sem_post(&mutex) ){
+		exit_gracefully("sem_post");
+	}
+}
+
+void eat(Philosopher *p){
+	dawdle();
+	if (-1 == sem_wait(&mutex) ){
+		exit_gracefully("sem_wait");
+	}
+	p -> state = CHANGING;				/*changing to thinking*/
+	print_states();
+	if (-1 == sem_post(&mutex) ){
+		exit_gracefully("sem_wait");
+	}
+}
+
+void put_forks(Philosopher *p, sem_t *first, sem_t *second){
+
+	
+	/* letting go first fork*/
+	if (-1 == sem_wait(&mutex) ){
+		exit_gracefully("sem_wait");
+	}
+
+	if (-1 == sem_post(first) ){
+		exit_gracefully("sem_wait");
+	}
+	p -> isHoldingRightFork = FALSE;		/*critical region*/
+
+	if (-1 == sem_post(&mutex) ){
+		exit_gracefully("sem_post");
+	}
+
+	/* getting second fork*/
+	if (-1 == sem_wait(&mutex) ){
+		exit_gracefully("sem_wait");
+	}
+
+	if (-1 == sem_post(second) ){
+		exit_gracefully("sem_wait");
+	}
+    p -> isHoldingLeftFork = FALSE;		  /*critical region*/
+	p -> state = THINKING;				  /*now thinking*/
+	print_states();
+	if (-1 == sem_post(&mutex) ){
+		exit_gracefully("sem_post");
+	}
+
+}
+
+void *philosophing(void *ptr){
 	int i;
-	if (argc < 2){
-		return DEFAULT_CYCLES;
+	Philosopher *p = (Philosopher *)ptr;
+	sem_t *first;
+	sem_t *second;
+	if (p -> isRightHanded == TRUE){
+		first  =  &forks[p -> rightFork];
+		second =  &forks[p -> leftFork];
+	}else{
+		first  =  &forks[p -> leftFork];
+		second =  &forks[p -> rightFork];
 	}
-	else{
-		int len = strlen(argv[1]);
-		for(i = 0; i < len; i++){
-			if (isdigit((int)argv[1][i]) == 0)
-				return DEFAULT_CYCLES;
-		}
-		return atoi(argv[1]);
+
+	for (i = 0; i < numb_cycles; i++){
+		think(p);
+	    
+		take_forks(p, first, second);
+        
+		eat(p);
+        
+		put_forks(p, first, second);
+
 	}
+	pthread_exit(retval);
 }
 
-void *philosophing(void *id_ptr){
-	printf("Thread %d says hi\n", *(int *)id_ptr);
-	return NULL;
-}
-
-void getForks(Fork forks[NUM_PHILOSOPHERS]){
+void getForks(){
 	int i;
 	for (i = 0; i < NUM_PHILOSOPHERS; i++){
-		forks[i].owner = NULL;
+		sem_t fork;		/*All forks start in the table*/
+		if (sem_init(&fork, THREAD_SHARED, INIT_VALUE) == -1){
+               exit_gracefully("sem_init");
+		}
+		forks[i] = fork;
 	}
+	if (sem_init(&mutex, THREAD_SHARED, INIT_VALUE) == -1){
+               exit_gracefully("sem_init");
+		}
 }
 
-void getPhilsophers(Philosopher phils[NUM_PHILOSOPHERS],
-				   Fork forks[NUM_PHILOSOPHERS], 
-				   pthread_t threads[NUM_PHILOSOPHERS]){
+void getPhilosophers(){
 
 	int i;
 	for (i = 0; i < NUM_PHILOSOPHERS; i++){
 		Philosopher confucious; /*threads are confusing*/
-		confucious.name = 'a' + i;
+		confucious.name = (char) ('A' + i);
 		confucious.thread_id = &threads[i];	
-		confucious.state = CHANGING;
+		confucious.state = THINKING;
 		if (i == 0){
 			confucious.isRightHanded = FALSE;
 		}else{
 			confucious.isRightHanded = TRUE;
 		}
-		confucious.target1 = &forks[i];
-		if (i != NUM_PHILOSOPHERS - 1){
-			confucious.target2 = &forks[FIRST_INDEX];
+		confucious.leftFork = i;
+		if (i == NUM_PHILOSOPHERS - 1){
+			confucious.rightFork = ZERO_INDEX;
 		}else{
-			confucious.target2 = &forks[i+1];
+			confucious.rightFork = i+1;
 		}
 		confucious.isHungry = TRUE;
+		confucious.isHoldingRightFork = FALSE;
+		confucious.isHoldingLeftFork = FALSE;
 		phils[i] = confucious;
 	}
 }
 
-
-
 int main(int argc, char *argv[]){
 
-	Philosopher phils[NUM_PHILOSOPHERS];
-	Fork forks[NUM_PHILOSOPHERS];
-	pthread_t threads[NUM_PHILOSOPHERS];
-	int id[NUM_PHILOSOPHERS];
-	int i, numb_cycles;
-
+	int i;
 	numb_cycles = read_command_line(argc, argv);
-	printf("numb cycles is:%d\n", numb_cycles);
-
+	getForks();
+	getPhilosophers();
+	print_beggining();
+	print_states();
 	for (i = 0; i < NUM_PHILOSOPHERS; i++){
-		id[i] = i;
+		sem_ids[i] = i;
 		int error_check = pthread_create(
 						&threads[i], 
 						NULL, 
 						philosophing, 
-						(void*) (&id[i]));
+						(void*) (&phils[i]));
 		if (error_check == -1){
-			perror("pthread_create\n");
-			exit(EXIT_FAILURE);
+			exit_gracefully("pthread_create");
 		}
 	}
 	for (i = 0; i < NUM_PHILOSOPHERS; i++){
 		pthread_join(threads[i], NULL);
 	}
-	printf("Parent says goodbye\n");
+
 	return 0;
 }
