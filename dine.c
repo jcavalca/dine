@@ -31,14 +31,10 @@ void think(Philosopher *p){
 void take_forks(Philosopher *p, sem_t *first, sem_t *second){
 
 	/* getting first fork*/
-	// if (-1 == sem_wait(&mutex) ){
-	// 	exit_gracefully("sem_wait");
-	// }
-
 	if (-1 == sem_wait(first) ){
 		exit_gracefully("sem_wait");
 	}
-	/*TEST*/
+
 	if (-1 == sem_wait(&mutex) ){
 		exit_gracefully("sem_wait");
 	}
@@ -50,14 +46,9 @@ void take_forks(Philosopher *p, sem_t *first, sem_t *second){
 	}
 
 	/* getting second fork*/
-	// if (-1 == sem_wait(&mutex) ){
-	// 	exit_gracefully("sem_wait");
-	// }
-
 	if (-1 == sem_wait(second) ){
 		exit_gracefully("sem_wait");
 	}
-	/*TEST*/
 	if (-1 == sem_wait(&mutex) ){
 		exit_gracefully("sem_wait");
 	}
@@ -85,38 +76,34 @@ void put_forks(Philosopher *p, sem_t *first, sem_t *second){
 
 
 	/* letting go first fork*/
-	// if (-1 == sem_wait(&mutex) ){
-	// 	exit_gracefully("sem_wait");
-	// }
-
 	if (-1 == sem_post(first) ){
 		exit_gracefully("sem_wait");
 	}
-	/*TEST*/
+
 	if (-1 == sem_wait(&mutex) ){
 		exit_gracefully("sem_wait");
 	}
+
 	p -> isHoldingRightFork = FALSE;		/*critical region*/
 	print_states();
+
 	if (-1 == sem_post(&mutex) ){
 		exit_gracefully("sem_post");
 	}
 
 	// /* getting second fork*/
-	// if (-1 == sem_wait(&mutex) ){
-	// 	exit_gracefully("sem_wait");
-	// }
-
 	if (-1 == sem_post(second) ){
 		exit_gracefully("sem_wait");
 	}
-	/*TEST*/
+
 	if (-1 == sem_wait(&mutex) ){
 		exit_gracefully("sem_wait");
 	}
+
     p -> isHoldingLeftFork = FALSE;		  /*critical region*/
 	p -> state = THINKING;				  /*now thinking*/
 	print_states();
+
 	if (-1 == sem_post(&mutex) ){
 		exit_gracefully("sem_post");
 	}

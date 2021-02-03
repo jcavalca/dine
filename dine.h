@@ -11,6 +11,7 @@
 #define DEFAULT_CYCLES 1
 #define THREAD_SHARED 1
 #define INIT_VALUE 1 /* all forks start on table */
+#define SPACING 8 
 
 typedef struct Philosopher
 {
