@@ -1,8 +1,3 @@
-/* defines number of philosophers */
-#ifndef NUM_PHILOSOPHERS 
-#define NUM_PHILOSOPHERS 5
-#endif
-
 /* defines possible states for a philosopher*/
 #define THINKING 0
 #define EATING 1

@@ -31,25 +31,34 @@ void think(Philosopher *p){
 void take_forks(Philosopher *p, sem_t *first, sem_t *second){
 
 	/* getting first fork*/
-	if (-1 == sem_wait(&mutex) ){
-		exit_gracefully("sem_wait");
-	}
+	// if (-1 == sem_wait(&mutex) ){
+	// 	exit_gracefully("sem_wait");
+	// }
 
 	if (-1 == sem_wait(first) ){
 		exit_gracefully("sem_wait");
 	}
-	p -> isHoldingRightFork = TRUE;		/*critical region*/
+	/*TEST*/
+	if (-1 == sem_wait(&mutex) ){
+		exit_gracefully("sem_wait");
+	}
 
+	p -> isHoldingRightFork = TRUE;		/*critical region*/
+	print_states();
 	if (-1 == sem_post(&mutex) ){
 		exit_gracefully("sem_post");
 	}
 
 	/* getting second fork*/
-	if (-1 == sem_wait(&mutex) ){
-		exit_gracefully("sem_wait");
-	}
+	// if (-1 == sem_wait(&mutex) ){
+	// 	exit_gracefully("sem_wait");
+	// }
 
 	if (-1 == sem_wait(second) ){
+		exit_gracefully("sem_wait");
+	}
+	/*TEST*/
+	if (-1 == sem_wait(&mutex) ){
 		exit_gracefully("sem_wait");
 	}
     p -> isHoldingLeftFork = TRUE;		  /*critical region*/
@@ -74,27 +83,35 @@ void eat(Philosopher *p){
 
 void put_forks(Philosopher *p, sem_t *first, sem_t *second){
 
-	
+
 	/* letting go first fork*/
-	if (-1 == sem_wait(&mutex) ){
-		exit_gracefully("sem_wait");
-	}
+	// if (-1 == sem_wait(&mutex) ){
+	// 	exit_gracefully("sem_wait");
+	// }
 
 	if (-1 == sem_post(first) ){
 		exit_gracefully("sem_wait");
 	}
+	/*TEST*/
+	if (-1 == sem_wait(&mutex) ){
+		exit_gracefully("sem_wait");
+	}
 	p -> isHoldingRightFork = FALSE;		/*critical region*/
-
+	print_states();
 	if (-1 == sem_post(&mutex) ){
 		exit_gracefully("sem_post");
 	}
 
-	/* getting second fork*/
-	if (-1 == sem_wait(&mutex) ){
-		exit_gracefully("sem_wait");
-	}
+	// /* getting second fork*/
+	// if (-1 == sem_wait(&mutex) ){
+	// 	exit_gracefully("sem_wait");
+	// }
 
 	if (-1 == sem_post(second) ){
+		exit_gracefully("sem_wait");
+	}
+	/*TEST*/
+	if (-1 == sem_wait(&mutex) ){
 		exit_gracefully("sem_wait");
 	}
     p -> isHoldingLeftFork = FALSE;		  /*critical region*/
@@ -120,13 +137,14 @@ void *philosophing(void *ptr){
 	}
 
 	for (i = 0; i < numb_cycles; i++){
-		think(p);
-	    
+
 		take_forks(p, first, second);
-        
+
 		eat(p);
-        
+
 		put_forks(p, first, second);
+
+		think(p);
 
 	}
 	pthread_exit(retval);
@@ -152,8 +170,8 @@ void getPhilosophers(){
 	for (i = 0; i < NUM_PHILOSOPHERS; i++){
 		Philosopher confucious; /*threads are confusing*/
 		confucious.name = (char) ('A' + i);
-		confucious.thread_id = &threads[i];	
-		confucious.state = THINKING;
+		confucious.thread_id = &threads[i];
+		confucious.state = CHANGING;
 		if (i == 0){
 			confucious.isRightHanded = FALSE;
 		}else{
@@ -183,9 +201,9 @@ int main(int argc, char *argv[]){
 	for (i = 0; i < NUM_PHILOSOPHERS; i++){
 		sem_ids[i] = i;
 		int error_check = pthread_create(
-						&threads[i], 
-						NULL, 
-						philosophing, 
+						&threads[i],
+						NULL,
+						philosophing,
 						(void*) (&phils[i]));
 		if (error_check == -1){
 			exit_gracefully("pthread_create");
