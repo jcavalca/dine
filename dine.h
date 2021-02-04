@@ -8,11 +8,13 @@
 #define TRUE 1
 
 #define ZERO_INDEX 0
+#define ONE_INDEX 1
 #define DEFAULT_CYCLES 1
 #define THREAD_SHARED 1
 #define INIT_VALUE 1 /* all forks start on table */
 #define SPACING 8 
 
+/*philosopher contents*/
 typedef struct Philosopher
 {
     char name;
